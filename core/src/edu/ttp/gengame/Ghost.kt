@@ -6,12 +6,12 @@ import java.util.ArrayList
 
     private val enableGhost = true
 
-     inner class Replay(val num_frames: Int, val frames: List<Int>)
+     inner class Replay(val num_frames: Int, val frames: Array<Int>)
 
-    fun ghostCreateReplay(): Replay? {
-        return if (!enableGhost) null else Replay(0, ArrayList())
-
-    }
+//    fun ghostCreateReplay(): Replay? {
+//        return if (!enableGhost) null else Replay(0, ArrayList())
+//
+//    }
 
     //    function ghost_add_replay_frame(replay, car) {
     //        if (!enable_ghost)

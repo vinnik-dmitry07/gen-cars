@@ -10,6 +10,7 @@ import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef
 import kotlin.math.abs
 
+@Suppress("unused")
 class CarSchema {
     object CarConstants {
         const val wheelCount = 2
@@ -24,14 +25,14 @@ class CarSchema {
     }
 
     object Schema {
-        val wheel_radius = SchemaElement(type = "float", length = CarConstants.wheelCount, min = CarConstants.wheelMinRadius, range = CarConstants.wheelRadiusRange, factor = 1)
-        val wheel_density = SchemaElement(type = "float", length = CarConstants.wheelCount, min = CarConstants.wheelMinDensity, range = CarConstants.wheelDensityRange, factor = 1)
-        val chassis_density = SchemaElement(type = "float", length = 1,
+        val wheelRadius = SchemaElement(type = "float", length = CarConstants.wheelCount, min = CarConstants.wheelMinRadius, range = CarConstants.wheelRadiusRange, factor = 1)
+        val wheelDensity = SchemaElement(type = "float", length = CarConstants.wheelCount, min = CarConstants.wheelMinDensity, range = CarConstants.wheelDensityRange, factor = 1)
+        val chassisDensity = SchemaElement(type = "float", length = 1,
                 min = CarConstants.chassisDensityRange, // ???
                 range = CarConstants.chassisMinDensity, // ???
                 factor = 1)
-        val vertex_list = SchemaElement(type = "float", length = 12, min = CarConstants.chassisMinAxis, range = CarConstants.chassisAxisRange, factor = 1)
-        val wheel_vertex = SchemaElement(type = "shuffle", length = 8, limit = CarConstants.wheelCount, factor = 1)
+        val vertexList = SchemaElement(type = "float", length = 12, min = CarConstants.chassisMinAxis, range = CarConstants.chassisAxisRange, factor = 1)
+        val wheelVertex = SchemaElement(type = "shuffle", length = 8, limit = CarConstants.wheelCount, factor = 1)
     }
 
     class Car {
@@ -39,7 +40,7 @@ class CarSchema {
         lateinit var wheels: Array<Body>
     }
 
-    class Chassis  constructor(@JvmField val body: Body) {
+    class Chassis constructor(@JvmField val body: Body) {
          var vertexList: Array<Vector2>? = null
     }
 
@@ -116,7 +117,7 @@ class CarSchema {
         //
         //  return body;
         //}
-        private fun createChassis(world: World, vertices: List<Double>, density: Double): Chassis {
+        private fun createChassis(world: World, vertices: DoubleArray, density: Double): Chassis {
             // @formatter:off
             val vertexList = arrayOf(
                 Vector2(vertices[0].toFloat(),      0f),

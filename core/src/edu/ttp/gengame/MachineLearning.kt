@@ -45,7 +45,7 @@ import kotlin.reflect.full.memberProperties
 
                     parentList.add(pair)
                     newborn = makeChild(
-                            pair.map { parent -> scores[parent].def }.toTypedArray()
+                            pair.map { parent -> scores[parent].def }
                     )
                     newborn = mutate(newborn)
                     newborn.isElite = false
@@ -56,7 +56,7 @@ import kotlin.reflect.full.memberProperties
                 return GenerationState(previousState.counter + 1, newGeneration.requireNoNulls())
             }
 
-            private fun makeChild(parents: Array<Def>): Def {
+            private fun makeChild(parents: List<Def>): Def {
                 return CreateInstance.createCrossBreed(parents)
             }
 
@@ -83,7 +83,7 @@ import kotlin.reflect.full.memberProperties
         //      inclusive: true,
         //    }, generator));
         //  },
-        fun shuffleIntegers(prop: SchemaElement, generator: Supplier<Double>): List<Double> {
+        fun shuffleIntegers(prop: SchemaElement, generator: Supplier<Double>): DoubleArray {
             return mapToShuffle(prop, createNormals(
                     SchemaElement(length=prop.length ?: 10,inclusive=true),
                     generator))
@@ -95,7 +95,7 @@ import kotlin.reflect.full.memberProperties
         //      inclusive: true,
         //    }, generator));
         //  },
-        fun createIntegers(prop: SchemaElement, generator: Supplier<Double>): List<Double> {
+        fun createIntegers(prop: SchemaElement, generator: Supplier<Double>): DoubleArray {
             return mapToInteger(prop, createNormals(
                     SchemaElement(length=prop.length,inclusive=true),
                     generator))
@@ -107,7 +107,7 @@ import kotlin.reflect.full.memberProperties
         //      inclusive: true,
         //    }, generator));
         //  },
-        fun createFloats(prop: SchemaElement, generator: Supplier<Double>): List<Double> {
+        fun createFloats(prop: SchemaElement, generator: Supplier<Double>): DoubleArray {
             return mapToFloat(prop, createNormals(
                     SchemaElement(length=prop.length,inclusive=true),
                     generator))
@@ -121,7 +121,7 @@ import kotlin.reflect.full.memberProperties
         //    ));
         //  },
         fun mutateShuffle(prop: SchemaElement, generator: Supplier<Double>, originalValues: DoubleArray,
-                          mutation_range: Double, chanceToMutate: Double): List<Double> {
+                          mutation_range: Double, chanceToMutate: Double): DoubleArray {
             return mapToShuffle(prop, mutateNormals(
                     prop, generator, originalValues, mutation_range, chanceToMutate
             ))
@@ -133,7 +133,7 @@ import kotlin.reflect.full.memberProperties
         //    ));
         //  },
         fun mutateIntegers(prop: SchemaElement, generator: Supplier<Double>, originalValues: DoubleArray,
-                           mutation_range: Double, chanceToMutate: Double): List<Double> {
+                           mutation_range: Double, chanceToMutate: Double): DoubleArray {
             return mapToInteger(prop, mutateNormals(
                     prop, generator, originalValues, mutation_range, chanceToMutate
             ))
@@ -145,7 +145,7 @@ import kotlin.reflect.full.memberProperties
         //    ));
         //  },
         fun mutateFloats(prop: SchemaElement, generator: Supplier<Double>, originalValues: DoubleArray,
-                         mutation_range: Double, chanceToMutate: Double): List<Double> {
+                         mutation_range: Double, chanceToMutate: Double): DoubleArray {
             return mapToFloat(prop, mutateNormals(
                     prop, generator, originalValues, mutation_range, chanceToMutate
             ))
@@ -163,8 +163,8 @@ import kotlin.reflect.full.memberProperties
             //    }
             //    return values;
             //  },
-            fun createNormals(prop: SchemaElement, generator: Supplier<Double>): List<Double> {
-                return List(prop.length!!) { createNormal(prop, generator)}
+            fun createNormals(prop: SchemaElement, generator: Supplier<Double>): DoubleArray {
+                return DoubleArray(prop.length!!) { createNormal(prop, generator)}
             }
 
             //  mapToShuffle(prop, normals){
@@ -179,13 +179,13 @@ import kotlin.reflect.full.memberProperties
             //      return i + offset;
             //    }).slice(0, limit);
             //  },
-            fun mapToShuffle(prop: SchemaElement, normals: List<Double>): List<Double> {
+            fun mapToShuffle(prop: SchemaElement, normals: DoubleArray): DoubleArray {
                 val offset = prop.offset ?: 0
                 val limit = prop.limit ?: prop.length
 
                 //    var sorted = normals.slice().sort((a, b) -> a - b); // ??? slice, sort a - b
 
-                return normals.map { `val` -> (normals.sorted().indexOf(`val`) + offset).toDouble() }.take(limit!!)
+                return normals.map { `val` -> (normals.sorted().indexOf(`val`) + offset).toDouble() }.take(limit!!).toDoubleArray()
             }
 
             //  mapToInteger(prop, normals){
@@ -198,14 +198,14 @@ import kotlin.reflect.full.memberProperties
             //      return Math.round(float);
             //    });
             //  },
-            fun mapToInteger(prop: SchemaElement, normals: List<Double>): List<Double> {
+            fun mapToInteger(prop: SchemaElement, normals: DoubleArray): DoubleArray {
                 val newProp = SchemaElement(
                         min = prop.min ?: 0.0,
                         range = prop.range ?: 10.0,
                         length = prop.length!!
                 )
 
-                return mapToFloat(newProp, normals).map { it.roundToInt().toDouble() }
+                return mapToFloat(newProp, normals).map { it.roundToInt().toDouble() }.toDoubleArray()
             }
 
             //  mapToFloat(prop, normals){
@@ -219,10 +219,10 @@ import kotlin.reflect.full.memberProperties
             //      return min + normal * range
             //    })
             //  },
-            fun mapToFloat(prop: SchemaElement, normals: List<Double>): List<Double> {
+            fun mapToFloat(prop: SchemaElement, normals: DoubleArray): DoubleArray {
                 return normals.map { normal ->
                     (prop.min ?: 0.0) + normal * (prop.range ?: 1.0)
-                }
+                }.toDoubleArray()
             }
 
             //  mutateNormals(prop, generator, originalValues, mutation_range, chanceToMutate){
@@ -237,9 +237,9 @@ import kotlin.reflect.full.memberProperties
             //    });
             //  }
             fun mutateNormals(prop: SchemaElement, generator: Supplier<Double>, originalValues: DoubleArray,
-                              mutation_range: Double, chanceToMutate: Double): List<Double> {
+                              mutation_range: Double, chanceToMutate: Double): DoubleArray {
                 val factor = (prop.factor ?: 1) * mutation_range
-                return originalValues.map { originalValue: Double -> if (generator.get() > chanceToMutate) originalValue else mutateNormal(prop, generator, originalValue, factor) }
+                return originalValues.map { originalValue: Double -> if (generator.get() > chanceToMutate) originalValue else mutateNormal(prop, generator, originalValue, factor) }.toDoubleArray()
             }
 
             //function mutateNormal(prop, generator, originalValue, mutation_range){
@@ -308,7 +308,8 @@ import kotlin.reflect.full.memberProperties
             return instance
         }
 
-        fun createCrossBreed(parents: Array<Def>): Def {
+        @Suppress("UNCHECKED_CAST")
+        fun createCrossBreed(parents: List<Def>): Def {
             val id = Game.random.nextInt()
             val crossDef = Def(id, parents.map { parent -> Def(parent.id, parent.ancestry) })
             CarSchema.Schema::class.memberProperties.forEach { schemaKey ->
@@ -350,7 +351,7 @@ import kotlin.reflect.full.memberProperties
         //    },
         fun createMutatedClone(schema: CarSchema.Schema, generator: Supplier<Double>, parent: Def, factor: Int, chanceToMutate: Double): Def {
             val clone = Def(parent.id, parent.ancestry)
-            Arrays.stream(CarSchema.Schema::class.java.fields).forEach { schemaKey ->
+            CarSchema.Schema::class.memberProperties.forEach { schemaKey ->
                 try {
                     val defKey = Def::class.java.getField(schemaKey.name)
                     val schemaProp = schemaKey.get(schema) as SchemaElement
@@ -376,9 +377,9 @@ import kotlin.reflect.full.memberProperties
                     val schemaProp = schema_field.get(Game.WordDef.schema) as SchemaElement
                     val defField = Def::class.java.getField(schema_field.name)
 
-                    val originalValues = defField.get(parent) as List<Double>
+                    val originalValues = defField.get(parent) as DoubleArray
 
-                    val values: List<Double>
+                    val values: DoubleArray
                     values = when (schemaProp.type) {
                         "shuffle" -> Random.mapToShuffle(schemaProp, originalValues)
                         "float" -> Random.mapToFloat(schemaProp, originalValues)

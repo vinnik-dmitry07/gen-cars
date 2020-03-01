@@ -69,7 +69,7 @@ object GenerationConfig {
         return if (r == 0.0) 0 else floor(-ln(r) * totalParents).toInt() % totalParents
     }
 
-     fun pickParent(chooseId: Int, key: String, parents: Array<Def>): Int {
+     fun pickParent(chooseId: Int, key: String, parents: List<Def>): Int {
         if (!currentChoices.containsKey(chooseId)) {
             currentChoices[chooseId] = initializePick()
         }
