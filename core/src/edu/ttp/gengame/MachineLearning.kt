@@ -4,11 +4,12 @@ import java.util.ArrayList
 import java.util.Arrays
 import java.util.function.Supplier
 import kotlin.math.roundToInt
+import kotlin.reflect.full.memberProperties
 
-internal class MachineLearning {
-    internal class GeneticAlgorithm {
-        internal object ManageRound {
-            internal class GenerationState(val counter: Int, val generation: Array<Def>)
+ class MachineLearning {
+     class GeneticAlgorithm {
+         object ManageRound {
+             class GenerationState(val counter: Int, val generation: Array<Def>)
 
             fun generationZero(): GenerationState {
                 val generationSize = GenerationConfig.generationSize
@@ -22,14 +23,14 @@ internal class MachineLearning {
 
             fun nextGeneration(
                     previousState: GenerationState,
-                    scores: Array<CarRunner>
+                    scores: List<CarRunner>
             ): GenerationState {
                 val championLength = GenerationConfig.championLength
                 val generationSize = GenerationConfig.generationSize
                 val newGeneration = arrayOfNulls<Def>(generationSize)
                 var newborn: Def
                 for (k in 0 until championLength) {
-                    scores[k].def.is_elite = true
+                    scores[k].def.isElite = true
                     scores[k].def.index = k
                     newGeneration[k] = scores[k].def
                 }
@@ -47,7 +48,7 @@ internal class MachineLearning {
                             pair.map { parent -> scores[parent].def }.toTypedArray()
                     )
                     newborn = mutate(newborn)
-                    newborn.is_elite = false
+                    newborn.isElite = false
                     newborn.index = k
                     newGeneration[k] = newborn
                 }
@@ -55,27 +56,27 @@ internal class MachineLearning {
                 return GenerationState(previousState.counter + 1, newGeneration.requireNoNulls())
             }
 
-            fun makeChild(parents: Array<Def>): Def {
+            private fun makeChild(parents: Array<Def>): Def {
                 return CreateInstance.createCrossBreed(parents)
             }
 
-            fun mutate(parent: Def): Def {
-                val schema = GenerationConfig.schema
-                val mutation_range = GenerationConfig.mutation_range
-                val gen_mutation = GenerationConfig.gen_mutation
+            private fun mutate(parent: Def): Def {
+                val schema = CarSchema.Schema
+                val mutationRange = GenerationConfig.mutation_range
+                val genMutation = GenerationConfig.gen_mutation
                 val generateRandom = Supplier { GenerationConfig.generateRandom() }
                 return CreateInstance.createMutatedClone(
                         schema,
                         generateRandom,
                         parent,
-                        mutation_range, // Math.max(mutation_range), - ???
-                        gen_mutation
+                        mutationRange, // Math.max(mutation_range), - ???
+                        genMutation
                 )
             }
         }
     }
 
-    internal class Random {
+     class Random {
         //  shuffleIntegers(prop, generator){
         //    return random.mapToShuffle(prop, random.createNormals({
         //      length: prop.length || 10,
@@ -287,13 +288,13 @@ internal class MachineLearning {
         }
     }
 
-    internal object CreateInstance {
+     object CreateInstance {
         fun createGenerationZero(generator: Supplier<Double>): Def {
             val instance = Def(Game.random.nextInt())
 
-            for (schemaKey in CarSchema.Schema::class.java.fields) {
+            for (schemaKey in CarSchema.Schema::class.memberProperties) {
                 try {
-                    val schemaProp = schemaKey.get(GenerationConfig.schema) as SchemaElement
+                    val schemaProp = schemaKey.get(CarSchema.Schema) as SchemaElement
                     val values = Random.createNormals(schemaProp, generator)
                     val defKey = Def::class.java.getField(schemaKey.name)
                     defKey.set(instance, values)
@@ -310,10 +311,10 @@ internal class MachineLearning {
         fun createCrossBreed(parents: Array<Def>): Def {
             val id = Game.random.nextInt()
             val crossDef = Def(id, parents.map { parent -> Def(parent.id, parent.ancestry) })
-            CarSchema.Schema::class.java.fields.forEach { schemaKey ->
+            CarSchema.Schema::class.memberProperties.forEach { schemaKey ->
                 try {
                     val defKey = Def::class.java.getField(schemaKey.name)
-                    val schemaDef = schemaKey.get(GenerationConfig.schema) as SchemaElement
+                    val schemaDef = schemaKey.get(CarSchema.Schema) as SchemaElement
 
                     val values = DoubleArray(schemaDef.length!!)
                     var i = 0
@@ -367,24 +368,25 @@ internal class MachineLearning {
             return clone
         }
 
+        @Suppress("UNCHECKED_CAST")
         fun applyTypes(parent: Def): Def {
             val res = Def(parent.id, parent.ancestry)
-            Arrays.stream(CarSchema.Schema::class.java.fields).forEach { schema_field ->
+            CarSchema.Schema::class.memberProperties.forEach { schema_field ->
                 try {
                     val schemaProp = schema_field.get(Game.WordDef.schema) as SchemaElement
-                    val def_field = Def::class.java.getField(schema_field.name)
+                    val defField = Def::class.java.getField(schema_field.name)
 
-                    val originalValues = def_field.get(parent) as List<Double>
+                    val originalValues = defField.get(parent) as List<Double>
 
                     val values: List<Double>
-                    when (schemaProp.type) {
-                        "shuffle" -> values = Random.mapToShuffle(schemaProp, originalValues)
-                        "float" -> values = Random.mapToFloat(schemaProp, originalValues)
-                        "integer" -> values = Random.mapToInteger(schemaProp, originalValues) // ??? float
+                    values = when (schemaProp.type) {
+                        "shuffle" -> Random.mapToShuffle(schemaProp, originalValues)
+                        "float" -> Random.mapToFloat(schemaProp, originalValues)
+                        "integer" -> Random.mapToInteger(schemaProp, originalValues) // ??? float
                         else -> throw Error("Unknown type " + schemaProp.type + " of schema for key \${key}")
                     }
 
-                    def_field.set(res, values)
+                    defField.set(res, values)
                 } catch (e: IllegalAccessException) {
                     e.printStackTrace()
                 } catch (e: NoSuchFieldException) {

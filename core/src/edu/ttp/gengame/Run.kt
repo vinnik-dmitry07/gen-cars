@@ -1,13 +1,8 @@
 package edu.ttp.gengame
 
-import com.badlogic.gdx.physics.box2d.World
-
-import java.util.Arrays
-import java.util.stream.IntStream
-
-class Run private constructor(internal val scene: Scene, internal val cars: List<CarRunner>, internal val step: Runnable) {
+class Run private constructor(val scene: Scene,  val cars: List<CarRunner>, val step: Runnable) {
     companion object {
-        internal fun runDefs(defs: Array<Def>): Run {
+         fun runDefs(defs: Array<Def>): Run {
             if (Game.WordDef.mutable_floor) {
                 // GHOST DISABLED
                 Game.WordDef.floorseed = Game.random.nextLong() // ???
@@ -16,7 +11,7 @@ class Run private constructor(internal val scene: Scene, internal val cars: List
             val scene = SetupScene.setupScene()
             scene.world.step(1.0.toFloat() / Game.WordDef.box2dfps, 20, 20)
             println("about to build cars")
-            val cars = (0..defs.size).map { i -> CarRunner(i, defs[i], CarSchema.DefToCar.defToCar(defs[i], scene.world), CarSchema.Run.initialState) }
+            val cars = defs.indices.map { i -> CarRunner(i, defs[i], CarSchema.DefToCar.defToCar(defs[i], scene.world), CarSchema.Run.initialState) }
             Game.alivecars = cars
             return Run(scene, cars, Runnable {
                 if (Game.alivecars.isEmpty()) {
@@ -38,8 +33,8 @@ class Run private constructor(internal val scene: Scene, internal val cars: List
                     val worldCar = car.car
                     world.destroyBody(worldCar.chassis.body)
 
-                    for (w in 0 until worldCar.wheels.size) {
-                        world.destroyBody(worldCar.wheels[w])
+                    for (element in worldCar.wheels) {
+                        world.destroyBody(element)
                     }
 
                     false

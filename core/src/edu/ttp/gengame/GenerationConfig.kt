@@ -2,16 +2,16 @@ package edu.ttp.gengame
 
 import java.util.HashMap
 import kotlin.math.floor
+import kotlin.math.ln
 
 object GenerationConfig {
-    val schema = CarSchema.Schema
-    internal val generationSize = 20
-    internal val championLength = 1
-    internal val mutation_range = 1
-    internal val gen_mutation = 0.05
+    const val generationSize = 20
+    const val championLength = 1
+    const val mutation_range = 1
+    const val gen_mutation = 0.05
     private val currentChoices = HashMap<Int, Pick>()
 
-    private val nAttributes = 15
+    private const val nAttributes = 15
 
     //function simpleSelect(parents){
     //  var totalParents = parents.length
@@ -63,13 +63,13 @@ object GenerationConfig {
     //  }
     //  return i;
     //}
-    internal fun selectFromAllParents(parents: Array<CarRunner>, parentList: List<IntArray>, previousParentIndex: Int?): Int {
+     fun selectFromAllParents(parents: List<CarRunner>, parentList: List<IntArray>, previousParentIndex: Int?): Int {
         val totalParents = parents.size
         val r = Game.random.nextDouble()
-        return if (r == 0.0) 0 else Math.floor(-Math.log(r) * totalParents).toInt() % totalParents
+        return if (r == 0.0) 0 else floor(-ln(r) * totalParents).toInt() % totalParents
     }
 
-    internal fun pickParent(chooseId: Int, key: String, parents: Array<Def>): Int {
+     fun pickParent(chooseId: Int, key: String, parents: Array<Def>): Int {
         if (!currentChoices.containsKey(chooseId)) {
             currentChoices[chooseId] = initializePick()
         }
@@ -79,14 +79,14 @@ object GenerationConfig {
         state!!.i++
 
         if (key == "wheel_radius" || key == "wheel_vertex" || key == "wheel_density") {
-            state.curparent = cw_chooseParent(state)
+            state.curparent = cwChooseParent(state)
             return state.curparent
         }
-        state.curparent = cw_chooseParent(state)
+        state.curparent = cwChooseParent(state)
         return state.curparent
     }
 
-    private fun cw_chooseParent(state: Pick): Int {
+    private fun cwChooseParent(state: Pick): Int {
         val curparent = state.curparent
         val attributeIndex = state.i
         val swapPoint1 = state.swapPoint1
@@ -97,7 +97,7 @@ object GenerationConfig {
         } else curparent
     }
 
-    internal class Pick(var curparent: Int, var i: Int, val swapPoint1: Int, val swapPoint2: Int)
+     class Pick(var curparent: Int, var i: Int, val swapPoint1: Int, val swapPoint2: Int)
 
     private fun initializePick(): Pick {
         val curparent = 0
@@ -111,7 +111,7 @@ object GenerationConfig {
         return Pick(curparent, i, swapPoint1, swapPoint2)
     }
 
-    internal fun generateRandom(): Double {
+     fun generateRandom(): Double {
         return Game.random.nextDouble()
     }
 

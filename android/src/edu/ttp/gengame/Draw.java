@@ -97,7 +97,7 @@ k=0;
         }
     }
 
-    static void drawCar(cw_Car myCar, Canvas ctx) {
+    static void drawCar(CwCar myCar, Canvas ctx) {
         double wheelMinDensity = CarSchema.CarConstants.wheelMinDensity;
         double wheelDensityRange = CarSchema.CarConstants.wheelDensityRange;
 
@@ -125,7 +125,7 @@ k=0;
             }
         }
 
-        if (myCar.getIs_elite()) {
+        if (myCar.isElite()) {
             strokePaint.setColor(rgb(63, 114, 175));
             fillPaint.setColor(rgb(219, 226, 239));
         } else {

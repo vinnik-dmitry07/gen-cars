@@ -8,6 +8,7 @@ import com.badlogic.gdx.physics.box2d.FixtureDef
 import com.badlogic.gdx.physics.box2d.PolygonShape
 import com.badlogic.gdx.physics.box2d.World
 import com.badlogic.gdx.physics.box2d.joints.RevoluteJointDef
+import kotlin.math.abs
 
 class CarSchema {
     object CarConstants {
@@ -38,25 +39,25 @@ class CarSchema {
         lateinit var wheels: Array<Body>
     }
 
-    class Chassis internal constructor(@JvmField val body: Body) {
-        internal var vertex_list: Array<Vector2>? = null
+    class Chassis  constructor(@JvmField val body: Body) {
+         var vertexList: Array<Vector2>? = null
     }
 
-    internal object DefToCar {
+     object DefToCar {
         fun defToCar(normal_def: Def, world: World): Car {
-            val car_def = MachineLearning.CreateInstance.applyTypes(normal_def)
+            val carDef = MachineLearning.CreateInstance.applyTypes(normal_def)
             val instance = Car()
             instance.chassis = createChassis(
-                    world, car_def.vertex_list, car_def.chassis_density[0]
+                    world, carDef.vertexList, carDef.chassisDensity[0]
             )
 
-            val wheelCount = car_def.wheel_radius.size
+            val wheelCount = carDef.wheelRadius.size
 
             instance.wheels = Array(wheelCount) { i ->
                 createWheel(
                         world,
-                        car_def.wheel_radius[i],
-                        car_def.wheel_density[i]
+                        carDef.wheelRadius[i],
+                        carDef.wheelDensity[i]
                 )
             }
 
@@ -65,20 +66,20 @@ class CarSchema {
                 carmass += instance.wheels[i].mass.toDouble()
             }
 
-            val joint_def = RevoluteJointDef()
+            val jointDef = RevoluteJointDef()
 
             for (i in 0 until wheelCount) {
-                val torque = carmass * -Game.WordDef.gravity.y / car_def.wheel_radius[i]
+                val torque = carmass * -Game.WordDef.gravity.y / carDef.wheelRadius[i]
 
-                val randvertex = instance.chassis.vertex_list!![car_def.wheel_vertex[i].toInt()]
-                joint_def.localAnchorA.set(randvertex.x, randvertex.y)
-                joint_def.localAnchorB.set(0f, 0f)
-                joint_def.maxMotorTorque = torque.toFloat()
-                joint_def.motorSpeed = (-Game.WordDef.motorSpeed).toFloat()
-                joint_def.enableMotor = true
-                joint_def.bodyA = instance.chassis.body
-                joint_def.bodyB = instance.wheels[i]
-                world.createJoint(joint_def)
+                val randvertex = instance.chassis.vertexList!![carDef.wheelVertex[i].toInt()]
+                jointDef.localAnchorA.set(randvertex.x, randvertex.y)
+                jointDef.localAnchorB.set(0f, 0f)
+                jointDef.maxMotorTorque = torque.toFloat()
+                jointDef.motorSpeed = (-Game.WordDef.motorSpeed).toFloat()
+                jointDef.enableMotor = true
+                jointDef.bodyA = instance.chassis.body
+                jointDef.bodyB = instance.wheels[i]
+                world.createJoint(jointDef)
             }
 
             return instance
@@ -115,9 +116,9 @@ class CarSchema {
         //
         //  return body;
         //}
-        fun createChassis(world: World, vertices: List<Double>, density: Double): Chassis {
+        private fun createChassis(world: World, vertices: List<Double>, density: Double): Chassis {
             // @formatter:off
-            val vertex_list = arrayOf(
+            val vertexList = arrayOf(
                 Vector2(vertices[0].toFloat(),      0f),
                 Vector2(vertices[1].toFloat(),      vertices[2].toFloat()),
                 Vector2(0f,                         vertices[3].toFloat()),
@@ -129,58 +130,58 @@ class CarSchema {
             )
             // @formatter:on
 
-            val body_def = BodyDef()
-            body_def.type = BodyDef.BodyType.DynamicBody
-            body_def.position.set(0.0f, 4.0f)
+            val bodyDef = BodyDef()
+            bodyDef.type = BodyDef.BodyType.DynamicBody
+            bodyDef.position.set(0.0f, 4.0f)
 
-            val chassis = Chassis(world.createBody(body_def))
+            val chassis = Chassis(world.createBody(bodyDef))
 
-            createChassisPart(chassis.body, vertex_list[0], vertex_list[1], density)
-            createChassisPart(chassis.body, vertex_list[1], vertex_list[2], density)
-            createChassisPart(chassis.body, vertex_list[2], vertex_list[3], density)
-            createChassisPart(chassis.body, vertex_list[3], vertex_list[4], density)
-            createChassisPart(chassis.body, vertex_list[4], vertex_list[5], density)
-            createChassisPart(chassis.body, vertex_list[5], vertex_list[6], density)
-            createChassisPart(chassis.body, vertex_list[6], vertex_list[7], density)
-            createChassisPart(chassis.body, vertex_list[7], vertex_list[0], density)
+            createChassisPart(chassis.body, vertexList[0], vertexList[1], density)
+            createChassisPart(chassis.body, vertexList[1], vertexList[2], density)
+            createChassisPart(chassis.body, vertexList[2], vertexList[3], density)
+            createChassisPart(chassis.body, vertexList[3], vertexList[4], density)
+            createChassisPart(chassis.body, vertexList[4], vertexList[5], density)
+            createChassisPart(chassis.body, vertexList[5], vertexList[6], density)
+            createChassisPart(chassis.body, vertexList[6], vertexList[7], density)
+            createChassisPart(chassis.body, vertexList[7], vertexList[0], density)
 
-            chassis.vertex_list = vertex_list
+            chassis.vertexList = vertexList
 
             return chassis
         }
 
-        fun createChassisPart(body: Body, vertex1: Vector2, vertex2: Vector2, density: Double) {
-            val vertex_list = arrayOfNulls<Vector2>(3)
-            vertex_list[0] = vertex1
-            vertex_list[1] = vertex2
-            vertex_list[2] = Vector2(0f, 0f)
-            val fix_def = FixtureDef()
-            fix_def.shape = PolygonShape()
-            fix_def.density = density.toFloat()
-            fix_def.friction = 10f
-            fix_def.restitution = 0.2f
-            fix_def.filter.groupIndex = -1
-            (fix_def.shape as PolygonShape).set(vertex_list)
+        private fun createChassisPart(body: Body, vertex1: Vector2, vertex2: Vector2, density: Double) {
+            val vertexList = arrayOfNulls<Vector2>(3)
+            vertexList[0] = vertex1
+            vertexList[1] = vertex2
+            vertexList[2] = Vector2(0f, 0f)
+            val fixDef = FixtureDef()
+            fixDef.shape = PolygonShape()
+            fixDef.density = density.toFloat()
+            fixDef.friction = 10f
+            fixDef.restitution = 0.2f
+            fixDef.filter.groupIndex = -1
+            (fixDef.shape as PolygonShape).set(vertexList)
 
-            body.createFixture(fix_def)
+            body.createFixture(fixDef)
         }
 
-        fun createWheel(world: World, radius: Double, density: Double): Body {
-            val body_def = BodyDef()
-            body_def.type = BodyDef.BodyType.DynamicBody
-            body_def.position.set(0f, 0f)
+        private fun createWheel(world: World, radius: Double, density: Double): Body {
+            val bodyDef = BodyDef()
+            bodyDef.type = BodyDef.BodyType.DynamicBody
+            bodyDef.position.set(0f, 0f)
 
-            val body = world.createBody(body_def)
+            val body = world.createBody(bodyDef)
 
-            val fix_def = FixtureDef()
-            fix_def.shape = CircleShape()
-            fix_def.shape.radius = radius.toFloat()
-            fix_def.density = density.toFloat()
-            fix_def.friction = 1f
-            fix_def.restitution = 0.2f
-            fix_def.filter.groupIndex = -1
+            val fixDef = FixtureDef()
+            fixDef.shape = CircleShape()
+            fixDef.shape.radius = radius.toFloat()
+            fixDef.density = density.toFloat()
+            fixDef.friction = 1f
+            fixDef.restitution = 0.2f
+            fixDef.filter.groupIndex = -1
 
-            body.createFixture(fix_def)
+            body.createFixture(fixDef)
             return body
         }
     }
@@ -248,7 +249,7 @@ class CarSchema {
                 return nextState
             }
             nextState.health = state.health - 1
-            if (Math.abs(worldConstruct.chassis.body.linearVelocity.x) < 0.001) {
+            if (abs(worldConstruct.chassis.body.linearVelocity.x) < 0.001) {
                 nextState.health -= 5
             }
             return nextState
@@ -270,8 +271,8 @@ class CarSchema {
             return false // TODO state.maxPositionx > constants.finishLine; // ??? finishLine
         }
 
-        class Score internal constructor(internal val v: Double, internal val s: Double, internal val x: Double, internal val y: Double, internal val y2: Double) {
-            internal var i: Int = 0
+        class Score  constructor( val v: Double,  val s: Double,  val x: Double,  val y: Double,  val y2: Double) {
+             var i: Int = 0
         }
 
         @JvmStatic

@@ -1,16 +1,11 @@
 package edu.ttp.gengame
 
 import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.physics.box2d.Body
-import com.badlogic.gdx.physics.box2d.BodyDef
-import com.badlogic.gdx.physics.box2d.FixtureDef
-import com.badlogic.gdx.physics.box2d.PolygonShape
-import com.badlogic.gdx.physics.box2d.World
-import com.badlogic.gdx.utils.Array
+import com.badlogic.gdx.physics.box2d.*
 import kotlin.math.cos
 import kotlin.math.sin
 
-internal object SetupScene {
+ object SetupScene {
     fun setupScene(): Scene {
         //        var world = new b2World(world_def.gravity, world_def.doSleep);
         val world = World(Game.WordDef.gravity, Game.WordDef.doSleep)
@@ -35,19 +30,15 @@ internal object SetupScene {
         //                last_fixture.GetShape().m_vertices[3]
         //        );
         //        world.finishLine = tile_position.x; ???
-        val last_tile = floorTiles[floorTiles.size - 1]
-        val last_fixture = last_tile.fixtureList.get(last_tile.fixtureList.size - 1)
+        val lastTile = floorTiles[floorTiles.size - 1]
+        val lastFixture = lastTile.fixtureList.get(lastTile.fixtureList.size - 1)
         val tmp = Vector2()
-        (last_fixture.shape as PolygonShape).getVertex(0, tmp)
-        val tile_position = last_tile.getWorldPoint(tmp)
+        (lastFixture.shape as PolygonShape).getVertex(0, tmp)
 
-        // TODO: 2/15/2020
-        //    world.finishLine = tile_position.x;
-
-        return Scene(world, floorTiles, tile_position.x.toDouble())
+        return Scene(world, floorTiles)
     }
 
-    private fun cwCreateFloor(world: World, floorseed: Long): kotlin.Array<Body> {
+    private fun cwCreateFloor(world: World, floorseed: Long): Array<Body> {
         var lastTile: Body
         var tilePosition = Vector2(-Game.spaceLeftToCam, 0f)
         val cwFloorTiles = arrayOfNulls<Body>(Game.WordDef.maxFloorTiles)
@@ -69,9 +60,9 @@ internal object SetupScene {
                 )
             }
             cwFloorTiles[k] = lastTile
-            val last_fixture = lastTile.fixtureList
+            val lastFixture = lastTile.fixtureList
             val temp = Vector2()
-            (last_fixture.get(0).shape as PolygonShape).getVertex(if (angle >= 0) 1 else 0, temp) // ?
+            (lastFixture.get(0).shape as PolygonShape).getVertex(if (angle >= 0) 1 else 0, temp) // ?
             tilePosition = lastTile.getWorldPoint(temp)
         }
         return cwFloorTiles.requireNoNulls()
@@ -86,7 +77,7 @@ internal object SetupScene {
         fixDef.shape = PolygonShape()
         fixDef.friction = 0.5f
 
-        val coords : kotlin.Array<Vector2> = arrayOf(
+        val coords : Array<Vector2> = arrayOf(
             Vector2(0f, 0f),
             Vector2(0f, -Game.WordDef.tileDimensions.y),
             Vector2(Game.WordDef.tileDimensions.x, -Game.WordDef.tileDimensions.y),
@@ -103,7 +94,7 @@ internal object SetupScene {
         return body
     }
 
-    private fun cwRotateFloorTile(coords: kotlin.Array<Vector2>, center: Vector2, angle: Double): kotlin.Array<Vector2> {
+    private fun cwRotateFloorTile(coords: Array<Vector2>, center: Vector2, angle: Double): Array<Vector2> {
         return coords.map{ coord ->
             Vector2(
                     cos(angle).toFloat() * (coord.x - center.x) - sin(angle).toFloat() * (coord.y - center.y) + center.x,

@@ -2,14 +2,14 @@ package edu.ttp.gengame
 
 import java.util.ArrayList
 
-internal class Ghost {
+ class Ghost {
 
-    private val enable_ghost = true
+    private val enableGhost = true
 
-    internal inner class Replay(val num_frames: Int, val frames: List<Int>)
+     inner class Replay(val num_frames: Int, val frames: List<Int>)
 
-    fun ghost_create_replay(): Replay? {
-        return if (!enable_ghost) null else Replay(0, ArrayList())
+    fun ghostCreateReplay(): Replay? {
+        return if (!enableGhost) null else Replay(0, ArrayList())
 
     }
 

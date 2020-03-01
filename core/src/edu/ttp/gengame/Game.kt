@@ -18,7 +18,7 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         const val zoom = 70f
     }
 
-    internal object LeaderPosition {
+     object LeaderPosition {
         var position = Vector2(0f, 0f)
         var leader: Int = 0
     }
@@ -32,18 +32,18 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         @JvmField var mutable_floor = false
         const val box2dfps = Game.box2dfps
         const val motorSpeed = 20
-        @JvmField val max_car_health = Game.max_car_health
-        @JvmField val schema = GenerationConfig.schema
+        const val max_car_health = box2dfps * 10
+        @JvmField val schema = CarSchema.Schema
     }
 
-    private fun cw_generationZero() {
+    private fun cwGenerationZero() {
         generationState = MachineLearning.GeneticAlgorithm.ManageRound.generationZero()
     }
 
     object Listeners {
         @JvmStatic
-        fun generationEnd(results: Array<CarRunner>) {
-            cw_newRound(results.sortedBy { it.score.v }.toTypedArray())
+        fun generationEnd(results: List<CarRunner>) {
+            cwNewRound(results.sortedBy { it.score.v })
         }
 
         @JvmStatic
@@ -66,7 +66,7 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
 
             // refocus camera to leader on death
             if (Camera.target === carInfo) {
-                cw_setCameraTarget(null)
+                cwSetCameraTarget(null)
             }
             // console.log(score);
             carMap.remove(carInfo)
@@ -80,7 +80,7 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             // console.log(LeaderPosition.leader, k)
             if (LeaderPosition.leader == k) {
                 // leader is dead, find new leader
-                cw_findLeader()
+                cwFindLeader()
             }
         }
     }
@@ -113,11 +113,11 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             //            newhealth.car_index = k;
             //            document.getElementById("health").appendChild(newhealth);
         }
-        cw_generationZero()
+        cwGenerationZero()
         // TODO: 2/15/2020
         //  ghost = ghost_create_ghost();
         resetCarUI()
-        currentRunner = edu.ttp.gengame.Run.runDefs(generationState.generation)
+        currentRunner = Run.runDefs(generationState.generation)
         alivecars = currentRunner.cars
         setupCarUI()
         // TODO
@@ -130,15 +130,13 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         lateinit var random: Random
         const val spaceLeftToCam = Camera.distanceToLeftBound / Camera.zoom
 
-        internal var ghost_fns = Ghost()
+         var ghost_fns = Ghost()
 
-        @JvmField val carMap = HashMap<CarRunner, cw_Car>()
+        @JvmField val carMap = HashMap<CarRunner, CwCar>()
 
         private const val box2dfps = 60
         @JvmField val skipTicks = (1000.0 / box2dfps).roundToInt()
         @JvmField val maxFrameSkip = skipTicks * 2
-
-        private const val max_car_health = box2dfps * 10
 
         private var cw_deadCars: Int = 0
         private lateinit var generationState: MachineLearning.GeneticAlgorithm.ManageRound.GenerationState
@@ -152,12 +150,12 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             //        document.getElementById("population").innerHTML = generationConfig.constants.generationSize.toString();
         }
 
-        private fun cw_setCameraTarget(k: CarRunner?) {
+        private fun cwSetCameraTarget(k: CarRunner?) {
             Camera.target = k
         }
 
         @JvmStatic
-        fun cw_setCameraPosition() {
+        fun cwSetCameraPosition() {
             var cameraTargetPosition: Vector2
 
             if (Camera.target != null) {
@@ -167,10 +165,10 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
                 cameraTargetPosition = LeaderPosition.position
             }
             cameraTargetPosition = LeaderPosition.position
-            val diff_y = Camera.pos.y - cameraTargetPosition.y
-            val diff_x = Camera.pos.x - cameraTargetPosition.x
-            Camera.pos.y -= (Camera.speed * diff_y).toFloat()
-            Camera.pos.x -= (Camera.speed * diff_x).toFloat()
+            val diffY = Camera.pos.y - cameraTargetPosition.y
+            val diffX = Camera.pos.x - cameraTargetPosition.x
+            Camera.pos.y -= (Camera.speed * diffY).toFloat()
+            Camera.pos.x -= (Camera.speed * diffX).toFloat()
             //        cw_minimapCamera(Camera.pos.x, camera.pos.y);
         }
 
@@ -189,10 +187,10 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             }
         }
 
-        private fun cw_newRound(results: Array<CarRunner>) {
+        private fun cwNewRound(results: List<CarRunner>) {
             Camera.pos.y = 0f
             Camera.pos.x = Camera.pos.y
-            cw_setCameraTarget(null)
+            cwSetCameraTarget(null)
 
             generationState = MachineLearning.GeneticAlgorithm.ManageRound.nextGeneration(
                     generationState, results
@@ -201,12 +199,12 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             if (WordDef.mutable_floor) {
                 // GHOST DISABLED
                 //            ghost = null;
-                WordDef.floorseed = Game.random.nextLong()
+                WordDef.floorseed = random.nextLong()
             } else {
                 // RE-ENABLE GHOST
                 //            ghost_reset_ghost(ghost);
             }
-            currentRunner = edu.ttp.gengame.Run.runDefs(generationState.generation)
+            currentRunner = Run.runDefs(generationState.generation)
             setupCarUI()
             //        cw_drawMiniMap();
             resetCarUI()
@@ -214,7 +212,7 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
 
         private fun setupCarUI() {
             currentRunner.cars.forEach { carInfo:CarRunner ->
-                val car = cw_Car(carInfo)
+                val car = CwCar(carInfo)
                 carMap[carInfo] = car
                 // TODO: 2/18/2020
                 //            car.replay = ghost_fns.ghost_create_replay();
@@ -222,14 +220,14 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             }
         }
 
-        private fun cw_findLeader() {
+        private fun cwFindLeader() {
             val lead = 0
-            val cw_carArray = carMap.values.toTypedArray()
-            for (k in cw_carArray.indices) {
-                if (!cw_carArray[k].alive) {
+            val cwCarArray = carMap.values.toTypedArray()
+            for (k in cwCarArray.indices) {
+                if (!cwCarArray[k].alive) {
                     continue
                 }
-                val position = cw_carArray[k].position
+                val position = cwCarArray[k].position
                 if (position.x > lead) {
                     LeaderPosition.position = position
                     LeaderPosition.leader = k

@@ -39,7 +39,7 @@ class GameThread extends Thread {
         Body[] floorTiles = Game.currentRunner.getScene().getFloorTiles();
         ctx.drawColor(Color.WHITE);
         ctx.save(); // ???
-        Game.cw_setCameraPosition();
+        Game.cwSetCameraPosition();
         ctx.translate(Game.Camera.distanceToLeftBound - (Game.Camera.pos.x * Game.Camera.zoom),
                       Game.Camera.INSTANCE.getDistanceToTopBound() + (Game.Camera.pos.y * Game.Camera.zoom));
         ctx.scale(Game.Camera.zoom, -Game.Camera.zoom);
@@ -51,7 +51,7 @@ class GameThread extends Thread {
 
 
     private void cw_drawCars() {
-        for (cw_Car myCar : Game.carMap.values()) {
+        for (CwCar myCar : Game.carMap.values()) {
             Draw.drawCar(myCar, ctx);
         }
     }

@@ -1,23 +1,23 @@
 package edu.ttp.gengame
 
 class Def {
-    internal var index: Int = 0
-    internal val id: Int
-    internal lateinit var ancestry: List<Def>
+     var index: Int = 0
+     val id: Int
+     var ancestry: List<Def> = listOfNotNull()
 
-    lateinit var wheel_radius: List<Double>
-    lateinit var wheel_density: List<Double>
-    lateinit var wheel_vertex: List<Double>
-    lateinit var chassis_density: List<Double>
-    lateinit var vertex_list: List<Double>
+    lateinit var wheelRadius: List<Double>
+    lateinit var wheelDensity: List<Double>
+    lateinit var wheelVertex: List<Double>
+    lateinit var chassisDensity: List<Double>
+    lateinit var vertexList: List<Double>
 
-    internal var is_elite: Boolean = false
+     var isElite: Boolean = false
 
-    internal constructor(id: Int) {
+     constructor(id: Int) {
         this.id = id
     }
 
-    internal constructor(id: Int, ancestry: List<Def>) {
+    constructor(id: Int, ancestry: List<Def>) {
         this.id = id
         this.ancestry = ancestry
     }
