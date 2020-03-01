@@ -1,0 +1,2 @@
+include ':car-schema'
+include 'desktop', 'android', 'core'
