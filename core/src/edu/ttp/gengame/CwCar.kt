@@ -32,7 +32,7 @@ class CwCar  constructor(val car: CarRunner) {
         //  }
     }
 
-     fun kill(currentRunner: Run) {
+     fun kill() {
         //this.minimapmarker.style.borderLeft = "1px solid #3F72AF";
         //        var finishLine = currentRunner.scene.finishLine
         //        var max_car_health = constants.max_car_health;

@@ -1,28 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="edu.ttp.gengame" >
+    package="edu.ttp.gengame">
+
     <application
         android:allowBackup="true"
+        android:appCategory="game"
+        android:fullBackupContent="@xml/backup_descriptor"
         android:icon="@drawable/ic_launcher"
         android:isGame="true"
-        android:appCategory="game"
         android:label="@string/app_name"
         android:theme="@style/GdxTheme"
         tools:ignore="UnusedAttribute"
-        tools:targetApi="o"
-        android:fullBackupContent="@xml/backup_descriptor">
+        tools:targetApi="o">
+        <activity android:name=".About"
+            android:parentActivityName=".AndroidLauncher">
+            <!-- The meta-data tag is required if you support API level 15 and lower -->
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".AndroidLauncher" />
+        </activity>
         <activity
-            android:name="edu.ttp.gengame.AndroidLauncher"
-            android:label="@string/app_name" 
-            android:screenOrientation="landscape"
-            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout">
+            android:name=".AndroidLauncher"
+            android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
+            android:label="@string/app_name"
+            android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
     </application>
 </manifest>

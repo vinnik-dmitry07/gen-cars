@@ -9,7 +9,7 @@ import kotlin.reflect.full.memberProperties
  class MachineLearning {
      class GeneticAlgorithm {
          object ManageRound {
-             class GenerationState(val counter: Int, val generation: Array<Def>)
+             class GenerationState(@JvmField var counter: Int, @JvmField var generation: Array<Def>)
 
             fun generationZero(): GenerationState {
                 val generationSize = GenerationConfig.generationSize

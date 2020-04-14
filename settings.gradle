@@ -1,2 +1,3 @@
-include ':car-schema'
 include 'desktop', 'android', 'core'
+include ':utils'
+include ':postprocessing'

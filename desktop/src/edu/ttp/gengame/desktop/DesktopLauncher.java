@@ -10,6 +10,6 @@ class DesktopLauncher {
 		config.title = "Gen Game";
 		config.width = 800;
 		config.height = 400;
-		new LwjglApplication(new Game(), config);
+//		new LwjglApplication(new Game(), config);
 	}
 }

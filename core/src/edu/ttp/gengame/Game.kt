@@ -1,49 +1,118 @@
 package edu.ttp.gengame
 
 import com.badlogic.gdx.ApplicationAdapter
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.*
+import com.badlogic.gdx.graphics.Pixmap.Format
+import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.Image
+import com.badlogic.gdx.scenes.scene2d.ui.Skin
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
+import com.bitfire.postprocessing.PostProcessor
+import com.bitfire.postprocessing.effects.Fxaa
+import com.bitfire.utils.ShaderLoader
 import java.util.*
-
 import kotlin.math.roundToInt
 import kotlin.properties.Delegates
 
 
 class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
-    object Camera {
-        const val speed = 0.05
-        @JvmField var pos = Vector2(0f, 0f)
-        const val distanceToLeftBound = 200f
-        var distanceToTopBound : Int by Delegates.notNull()
-        @JvmField var target: CarRunner? = null
-        const val zoom = 70f
+    private fun simulationStep() {
+        Runner.step()
+        // TODO
+        //        showDistance(
+        //                Math.round(LeaderPosition.x * 100) / 100,
+        //                Math.round(LeaderPosition.y * 100) / 100
+        //        );
     }
 
-     object LeaderPosition {
+//    fun showDistance(distance: Double, height: Double) { // TODO: 2/18/2020
+//        distanceMeter.innerHTML = distance + " meters<br />";
+//        heightMeter.innerHTML = height + " meters";
+//        if (distance > minimapfogdistance) {
+//            fogdistance.width = 800 - Math.round(distance + 15) * minimapscale + "px";
+//            minimapfogdistance = distance;
+//        }
+//    }
+
+    private fun drawScreen() {
+        postProcessor.capture()
+        val floorTiles = Runner.scene.floorTiles
+        Gdx.gl.glClearColor(1f, 1f, 1f, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+        cwSetCameraPosition()
+        Camera.camera.position.set(LeaderPosition.position.x + ((Camera.camera.viewportWidth - 200) / Camera.zoom) / 2f, LeaderPosition.position.y, 0f)
+//        Camera.camera.translate(Camera.distanceToLeftBound - Camera.pos.x * Camera.zoom,
+//                Camera.distanceToTopBound + Camera.pos.y * Camera.zoom)
+        Camera.camera.zoom = 1f / Camera.zoom
+
+        Camera.camera.update()
+
+        @Suppress("UsePropertyAccessSyntax")
+        Draw.renderer.setProjectionMatrix(Camera.camera.combined)
+
+        Draw.cwDrawFloor(floorTiles)
+        //        ghost_draw_frame(ctx, ghost, camera);
+        drawCars()
+        postProcessor.render()
+    }
+
+    private fun drawCars() {
+        for (myCar in carMap.values) {
+            Draw.drawCar(myCar)
+        }
+    }
+
+    object Camera {
+        val camera = OrthographicCamera(800f, 600f)
+        const val speed = 0.05
+        @JvmField
+        var pos = Vector2(0f, 0f)
+        const val distanceToLeftBound = 200f
+        var distanceToTopBound: Int by Delegates.notNull()
+        @JvmField
+        var target: CarRunner? = null
+        const val zoom = 60f
+    }
+
+    object LeaderPosition {
         var position = Vector2(0f, 0f)
         var leader: Int = 0
     }
 
     object WordDef {
-        @JvmField val gravity = Vector2(0.0f, -9.81f)
+        @JvmField
+        val gravity = Vector2(0.0f, -9.81f)
         const val doSleep = true
-        @JvmField var floorseed = random.nextLong()
-        @JvmField val tileDimensions = Vector2(1.5f, 0.15f)
+        @JvmField
+        var floorseed = random.nextLong()
+        @JvmField
+        val tileDimensions = Vector2(1.5f, 0.15f)
         const val maxFloorTiles = 200
-        @JvmField var mutable_floor = false
+        @JvmField
+        var mutable_floor = false
         const val box2dfps = Game.box2dfps
         const val motorSpeed = 20
         const val max_car_health = box2dfps * 10
-        @JvmField val schema = CarSchema.Schema
+        @JvmField
+        val schema = CarSchema.Schema
     }
 
-    private fun cwGenerationZero() {
+    private fun generationZero() {
         generationState = MachineLearning.GeneticAlgorithm.ManageRound.generationZero()
     }
 
     object Listeners {
         @JvmStatic
         fun generationEnd(results: List<CarRunner>) {
-            cwNewRound(results.sortedBy { it.score.v })
+            newRound(results.sortedByDescending { it.score.v })
         }
 
         @JvmStatic
@@ -62,11 +131,11 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
 
             //            CarSchema.Car car = carInfo.car;
             val score = carInfo.score
-            carMap[carInfo]!!.kill(currentRunner)
+            carMap[carInfo]!!.kill()
 
             // refocus camera to leader on death
             if (Camera.target === carInfo) {
-                cwSetCameraTarget(null)
+                setCameraTarget(null)
             }
             // console.log(score);
             carMap.remove(carInfo)
@@ -80,9 +149,96 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             // console.log(LeaderPosition.leader, k)
             if (LeaderPosition.leader == k) {
                 // leader is dead, find new leader
-                cwFindLeader()
+                findLeader()
             }
         }
+    }
+
+    lateinit var shape: ShapeRenderer
+    private lateinit var stage: Stage
+    lateinit var skin: Skin
+    lateinit var postProcessor: PostProcessor
+    override fun create() {
+        shape = ShapeRenderer()
+        stage = Stage()
+//        Gdx.input.inputProcessor = stage
+//        // A skin can be loaded via JSON or defined programmatically, either is fine. Using a skin is optional but strongly
+//        // recommended solely for the convenience of getting a texture, region, etc as a drawable, tinted drawable, etc.
+//        skin = Skin()
+//        // Generate a 1x1 white texture and store it in the skin named "white".
+//        val pixmap = Pixmap(1, 1, Format.RGBA8888)
+//        pixmap.setColor(Color.WHITE)
+//        pixmap.fill()
+//        skin.add("white", Texture(pixmap))
+//        // Store the default libgdx font under the name "default".
+//        skin.add("default", BitmapFont())
+//        // Configure a TextButtonStyle and name it "default". Skin resources are stored by type, so this doesn't overwrite the font.
+//        val textButtonStyle = TextButtonStyle()
+//        textButtonStyle.up = skin.newDrawable("white", Color.DARK_GRAY)
+//        textButtonStyle.down = skin.newDrawable("white", Color.DARK_GRAY)
+//        textButtonStyle.checked = skin.newDrawable("white", Color.BLUE)
+//        textButtonStyle.over = skin.newDrawable("white", Color.LIGHT_GRAY)
+//        textButtonStyle.font = skin.getFont("default")
+//        skin.add("default", textButtonStyle)
+//        // Create a table that fills the screen. Everything else will go inside this table.
+//        val table = Table()
+//        table.setFillParent(true)
+//        stage.addActor(table)
+//        // Create a button with the "default" TextButtonStyle. A 3rd parameter can be used to specify a name other than "default".
+//        val button = TextButton("Click me!", skin)
+//        table.add(button)
+//        // Add a listener to the button. ChangeListener is fired when the button's checked state changes, eg when clicked,
+//        // Button#setChecked() is called, via a key press, etc. If the event.cancel() is called, the checked state will be reverted.
+//        // ClickListener could have been used, but would only fire when clicked. Also, canceling a ClickListener event won't
+//        // revert the checked state.
+//        button.addListener(object : ChangeListener() {
+//            override fun changed(event: ChangeEvent, actor: Actor) {
+//                println("Clicked! Is checked: " + button.isChecked)
+//                button.setText("Good job!")
+//            }
+//        })
+//        // Add an image actor. Have to set the size, else it would be the size of the drawable (which is the 1x1 texture).
+//        table.add(Image(skin.newDrawable("white", Color.RED))).size(64f)
+
+        ShaderLoader.BasePath = "shaders/";
+        postProcessor = PostProcessor(false, false, false)
+        val fxaa = Fxaa((Gdx.graphics.getWidth() * 0.9).toInt(), (Gdx.graphics.getHeight() * 0.9).toInt());
+        postProcessor.addEffect(fxaa)
+    }
+
+
+    override fun render() {
+//        stage.act(min(Gdx.graphics.deltaTime, 1 / 30f))
+//        stage.draw()
+//        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+//        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+//
+////        cwSetCameraPosition()
+////        Camera.camera.translate(Camera.distanceToLeftBound - Camera.pos.x * Camera.zoom,
+////                Camera.distanceToTopBound + Camera.pos.y * Camera.zoom)
+//        Camera.camera.zoom = Camera.zoom
+//
+//        Camera.camera.update()
+//        @Suppress("UsePropertyAccessSyntax")
+//        shape.setProjectionMatrix(Camera.camera.combined)
+//
+//        shape.begin(ShapeRenderer.ShapeType.Filled)
+//        shape.circle(50f, 50f, 50f)
+//        shape.end()
+        if (!paused) {
+            drawScreen()
+            simulationStep()
+        }
+    }
+
+    override fun resize(width: Int, height: Int) {
+        stage.viewport.update(width, height, true)
+    }
+
+    override fun dispose() {
+        stage.dispose()
+        skin.dispose()
+        postProcessor.dispose()
     }
 
     init {
@@ -113,36 +269,44 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             //            newhealth.car_index = k;
             //            document.getElementById("health").appendChild(newhealth);
         }
-        cwGenerationZero()
+        generationZero()
         // TODO: 2/15/2020
         //  ghost = ghost_create_ghost();
         resetCarUI()
-        currentRunner = Run.runDefs(generationState.generation)
-        alivecars = currentRunner.cars
+        Runner()
+        Runner.updateDefs(generationState.generation)
+        alivecars = Runner.cars
         setupCarUI()
         // TODO
         //  cw_drawMiniMap();
     }
 
     companion object {
+
         var spaceRightToCam: Float by Delegates.notNull()
         lateinit var alivecars: List<CarRunner>
         lateinit var random: Random
         const val spaceLeftToCam = Camera.distanceToLeftBound / Camera.zoom
 
-         var ghost_fns = Ghost()
+        // var ghost_fns = Ghost()
 
-        @JvmField val carMap = HashMap<CarRunner, CwCar>()
+        @JvmField
+        val carMap = HashMap<CarRunner, CwCar>()
+
+        @JvmField
+        var paused = false
 
         private const val box2dfps = 60
-        @JvmField val skipTicks = (1000.0 / box2dfps).roundToInt()
-        @JvmField val maxFrameSkip = skipTicks * 2
+        @JvmField
+        val skipTicks = (1000.0 / box2dfps).roundToInt()
+        @JvmField
+        val maxFrameSkip = skipTicks * 2
 
         private var cw_deadCars: Int = 0
-        private lateinit var generationState: MachineLearning.GeneticAlgorithm.ManageRound.GenerationState
-        lateinit var currentRunner: Run
+        lateinit var generationState: MachineLearning.GeneticAlgorithm.ManageRound.GenerationState
+        lateinit var runner: Runner
 
-        private fun resetCarUI() {
+        fun resetCarUI() {
             cw_deadCars = 0
             LeaderPosition.position = Vector2(0f, 0f)
             //        document.getElementById("generation").innerHTML = generationState.counter.toString();
@@ -150,7 +314,7 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             //        document.getElementById("population").innerHTML = generationConfig.constants.generationSize.toString();
         }
 
-        private fun cwSetCameraTarget(k: CarRunner?) {
+        private fun setCameraTarget(k: CarRunner?) {
             Camera.target = k
         }
 
@@ -161,7 +325,6 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             if (Camera.target != null) {
                 // cameraTargetPosition = carMap.get(camera.target).getPosition(); ???
             } else {
-
                 cameraTargetPosition = LeaderPosition.position
             }
             cameraTargetPosition = LeaderPosition.position
@@ -187,10 +350,10 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             }
         }
 
-        private fun cwNewRound(results: List<CarRunner>) {
+        private fun newRound(results: List<CarRunner>) {
             Camera.pos.y = 0f
             Camera.pos.x = Camera.pos.y
-            cwSetCameraTarget(null)
+            setCameraTarget(null)
 
             generationState = MachineLearning.GeneticAlgorithm.ManageRound.nextGeneration(
                     generationState, results
@@ -204,14 +367,14 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
                 // RE-ENABLE GHOST
                 //            ghost_reset_ghost(ghost);
             }
-            currentRunner = Run.runDefs(generationState.generation)
+            Runner.updateDefs(generationState.generation)
             setupCarUI()
             //        cw_drawMiniMap();
             resetCarUI()
         }
 
-        private fun setupCarUI() {
-            currentRunner.cars.forEach { carInfo:CarRunner ->
+        fun setupCarUI() {
+            Runner.cars.forEach { carInfo: CarRunner ->
                 val car = CwCar(carInfo)
                 carMap[carInfo] = car
                 // TODO: 2/18/2020
@@ -220,7 +383,7 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             }
         }
 
-        private fun cwFindLeader() {
+        private fun findLeader() {
             val lead = 0
             val cwCarArray = carMap.values.toTypedArray()
             for (k in cwCarArray.indices) {
