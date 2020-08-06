@@ -5,6 +5,7 @@ class Runner {
         lateinit var scene: Scene
         lateinit var cars: List<CarRunner>
 
+        @JvmStatic
         fun updateDefs(defs: Array<Def>) {
             if (Game.WordDef.mutable_floor) {
                 // GHOST DISABLED
@@ -15,7 +16,7 @@ class Runner {
             scene.world.step(1.0.toFloat() / Game.WordDef.box2dfps, 20, 20)
             println("about to build cars")
             cars = defs.indices.map { i -> CarRunner(i, defs[i], CarSchema.DefToCar.defToCar(defs[i], scene.world), CarSchema.Run.initialState) }
-            Game.alivecars = cars;
+            Game.alivecars = cars
         }
 
         fun step() {

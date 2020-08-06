@@ -1,7 +1,9 @@
 package edu.ttp.gengame;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Point;
 import android.os.Bundle;
 import android.view.Display;
@@ -24,6 +26,17 @@ public class AndroidLauncher extends AndroidApplication {
     String STORAGEFILE = "storage.json";
     DBHelper dbHelper = new DBHelper(getContext());
 
+    class ResultCallback implements Game.ICallback {
+        @Override
+        public void call(double result){
+            SQLiteDatabase db = dbHelper.getWritableDatabase();
+            ContentValues values = new ContentValues();
+            values.put(ResultContract.ResultEntry.COLUMN_NAME_SCORE, result);
+            db.insert(ResultContract.ResultEntry.TABLE_NAME, null, values);
+        }
+    }
+    Game.ICallback callback = new ResultCallback();
+
     private static class GameData {
         Def[] savedGeneration = Game.generationState.generation;
         int genCounter = Game.generationState.counter;
@@ -40,11 +53,13 @@ public class AndroidLauncher extends AndroidApplication {
         config.useAccelerometer = false;
         config.useCompass = false;
 
+        getContext().deleteDatabase(DBHelper.DATABASE_NAME);
+
         Display display = getWindowManager().getDefaultDisplay();
         Point size = new Point();
         display.getSize(size);
 
-        View gameView = initializeForView(new Game(size.x, size.y), config);
+        View gameView = initializeForView(new Game(callback, size.x, size.y), config);
 
         Button infoButton = new Button(this);
         infoButton.setText("Info");
@@ -56,16 +71,9 @@ public class AndroidLauncher extends AndroidApplication {
         Button saveButton = new Button(this);
         saveButton.setText("Save");
         saveButton.setOnClickListener(v -> {
+            Game.paused = true;
             write(STORAGEFILE, new Gson().toJson(new GameData()));
-//            SQLiteDatabase db = dbHelper.getWritableDatabase();
-//            ContentValues values = new ContentValues();
-//            values.put(DefContract.DefEntry.COLUMN_NAME_WHEEL_RADIUSES, "2,3");
-//            values.put(DefContract.DefEntry.COLUMN_NAME_WHEEL_DENSITIES, "0.5,0.6");
-//            values.put(DefContract.DefEntry.COLUMN_NAME_CHASSIS_DENSITY, 0.5);
-//            values.put(DefContract.DefEntry.COLUMN_NAME_VERTICES, "4,5");
-//            values.put(DefContract.DefEntry.COLUMN_NAME_WHEEL_VERTICES, "6,7");
-
-//            db.insert(DefContract.DefEntry.TABLE_NAME, null, values);
+            Game.paused = false;
         });
 
         Button loadButton = new Button(this);
@@ -74,60 +82,81 @@ public class AndroidLauncher extends AndroidApplication {
             if (isFilePresent(STORAGEFILE)) {
                 Game.paused = true;
                 GameData data = new Gson().fromJson(read(STORAGEFILE), GameData.class);
+                Game.clearPopulationWorld();
                 Game.generationState.generation = data.savedGeneration;
                 Game.generationState.counter = data.genCounter;
 //                Game.ghost = data.ghost;
 //                Game.graphState.topScores = data.topScores;
                 Game.WordDef.floorseed = data.floorseed;
                 Runner.Companion.updateDefs(Game.generationState.generation);
-                Game.Companion.setupCarUI();
-                Game.Companion.resetCarUI();
+                Game.setupCarUI();
+                Game.resetCarUI();
                 Game.paused = false;
             }
+        });
 
-
-//            SQLiteDatabase db = dbHelper.getReadableDatabase();
-//            String[] projection = {
-//                    DefContract.DefEntry.COLUMN_NAME_WHEEL_RADIUSES,
-//                    DefContract.DefEntry.COLUMN_NAME_WHEEL_DENSITIES,
-//                    DefContract.DefEntry.COLUMN_NAME_CHASSIS_DENSITY,
-//                    DefContract.DefEntry.COLUMN_NAME_VERTICES,
-//                    DefContract.DefEntry.COLUMN_NAME_WHEEL_VERTICES
-//            };
-//            Cursor cursor = db.query(
-//                    DefContract.DefEntry.TABLE_NAME,
-//                    projection,
-//                    null, null, null, null, null
-//            );
-//            while (cursor.moveToNext()) {
-//                String radiuses = cursor.getString(cursor.getColumnIndexOrThrow(DefContract.DefEntry.COLUMN_NAME_WHEEL_RADIUSES));
-//                String densities = cursor.getString(cursor.getColumnIndexOrThrow(DefContract.DefEntry.COLUMN_NAME_WHEEL_DENSITIES));
-//                float chassis_density = cursor.getFloat(cursor.getColumnIndexOrThrow(DefContract.DefEntry.COLUMN_NAME_CHASSIS_DENSITY));
-//                String vertices = cursor.getString(cursor.getColumnIndexOrThrow(DefContract.DefEntry.COLUMN_NAME_VERTICES));
-//                String wheelVertices = cursor.getString(cursor.getColumnIndexOrThrow(DefContract.DefEntry.COLUMN_NAME_WHEEL_VERTICES));
-//            }
-//
-//            Game.Companion.resetCarUI();
+        Button restartButton = new Button(this);
+        restartButton.setText("Restart");
+        restartButton.setOnClickListener(v -> {
+            Game.paused = true;
+            Game.clearPopulationWorld();
+            Game.generationZero();
+            // TODO: 2/15/2020
+            //  ghost = ghost_create_ghost();
+            Game.resetCarUI();
+            Runner.updateDefs(Game.generationState.generation);
+            Game.alivecars = Runner.cars;
+            Game.setupCarUI();
+            Game.resetCarUI();
             Game.paused = false;
         });
 
+        Button statsButton = new Button(this);
+        statsButton.setText("Stats");
+        statsButton.setOnClickListener(v -> {
+            Intent intent = new Intent(AndroidLauncher.this, StatsActivity.class);
+            startActivity(intent);
+        });
+
+        Button speedupButton = new Button(this);
+        speedupButton.setText("Speedup");
+        speedupButton.setOnClickListener(v -> {
+            Game.doDraw = !Game.doDraw;
+            Game.speed = Game.speed == 1 ? 100 : 1;
+        });
+
         RelativeLayout layout = new RelativeLayout(this);
-        RelativeLayout.LayoutParams textViewParams =
+        RelativeLayout.LayoutParams params =
                 new RelativeLayout.LayoutParams(RelativeLayout.LayoutParams.WRAP_CONTENT,
                         RelativeLayout.LayoutParams.WRAP_CONTENT);
-        textViewParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
-        textViewParams.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
+        params.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+        params.addRule(RelativeLayout.ALIGN_PARENT_RIGHT);
 
         layout.addView(gameView);
-        layout.addView(infoButton, textViewParams);
+        layout.addView(infoButton, params);
 
-        RelativeLayout.LayoutParams textViewParams1 = new RelativeLayout.LayoutParams(textViewParams);
-        textViewParams1.rightMargin = 150;
-        layout.addView(saveButton, textViewParams1);
+        RelativeLayout.LayoutParams params1 = new RelativeLayout.LayoutParams(params);
+        params1.rightMargin = 130;
+        layout.addView(saveButton, params1);
 
-        RelativeLayout.LayoutParams textViewParams2 = new RelativeLayout.LayoutParams(textViewParams);
-        textViewParams2.rightMargin = 300;
-        layout.addView(loadButton, textViewParams2);
+        RelativeLayout.LayoutParams params2 = new RelativeLayout.LayoutParams(params);
+        params2.rightMargin = 280;
+        layout.addView(loadButton, params2);
+        setContentView(layout);
+
+        RelativeLayout.LayoutParams params3 = new RelativeLayout.LayoutParams(params);
+        params3.rightMargin = 430;
+        layout.addView(restartButton, params3);
+        setContentView(layout);
+
+        RelativeLayout.LayoutParams params4 = new RelativeLayout.LayoutParams(params);
+        params4.rightMargin = 620;
+        layout.addView(statsButton, params4);
+        setContentView(layout);
+
+        RelativeLayout.LayoutParams params5 = new RelativeLayout.LayoutParams(params);
+        params5.rightMargin = 770;
+        layout.addView(speedupButton, params5);
         setContentView(layout);
     }
 

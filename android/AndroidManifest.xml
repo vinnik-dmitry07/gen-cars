@@ -13,8 +13,12 @@
         android:theme="@style/GdxTheme"
         tools:ignore="UnusedAttribute"
         tools:targetApi="o">
-        <activity android:name=".About"
+
+        <activity android:name=".StatsActivity" />
+        <activity
+            android:name=".About"
             android:parentActivityName=".AndroidLauncher">
+
             <!-- The meta-data tag is required if you support API level 15 and lower -->
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
@@ -33,4 +37,5 @@
             </intent-filter>
         </activity>
     </application>
+
 </manifest>

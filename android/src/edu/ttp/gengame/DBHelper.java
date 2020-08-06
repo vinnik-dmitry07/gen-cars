@@ -4,22 +4,20 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
+import edu.ttp.gengame.ResultContract.ResultEntry;
+
 public class DBHelper extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 1;
-    private static final String DATABASE_NAME = "FeedReader.db";
+    public static final String DATABASE_NAME = "Scores.db";
     private static final String SQL_CREATE_ENTRIES =
-            "CREATE TABLE IF NOT EXISTS defs " +
+            "CREATE TABLE " + ResultEntry.TABLE_NAME +
                     "(" +
-                    DefContract.DefEntry._ID + " INTEGER PRIMARY KEY," +
-                    DefContract.DefEntry.COLUMN_NAME_WHEEL_RADIUSES + " TEXT," +
-                    DefContract.DefEntry.COLUMN_NAME_WHEEL_DENSITIES + " TEXT," +
-                    DefContract.DefEntry.COLUMN_NAME_CHASSIS_DENSITY + " REAL," +
-                    DefContract.DefEntry.COLUMN_NAME_VERTICES + " TEXT," +
-                    DefContract.DefEntry.COLUMN_NAME_WHEEL_VERTICES + " TEXT" +
+                    ResultEntry._ID + " INTEGER PRIMARY KEY," +
+                    ResultEntry.COLUMN_NAME_SCORE + " REAL" +
                     ")";
 
     private static final String SQL_DELETE_ENTRIES =
-            "DROP TABLE IF EXISTS " + DefContract.DefEntry.TABLE_NAME;
+            "DROP TABLE IF EXISTS " + ResultEntry.TABLE_NAME;
 
     public DBHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);

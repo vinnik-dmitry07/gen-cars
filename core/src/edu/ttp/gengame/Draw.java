@@ -24,8 +24,8 @@ class Draw {
         return vertices;
     }
 
-    private static void cwDrawCircle(Body body, Vector2 center, float radius, float angle,
-                                     Color fillColor, @SuppressWarnings("SameParameterValue") Color strokeColor) {
+    private static void drawCircle(Body body, Vector2 center, float radius, float angle,
+                                   Color fillColor, @SuppressWarnings("SameParameterValue") Color strokeColor) {
 
         Vector2 p = body.getWorldPoint(center);
 
@@ -45,7 +45,7 @@ class Draw {
         renderer.end();
     }
 
-    private static void cwDrawVirtualPoly(Body body, Vector2[] vtx, Color fillColor, Color strokeColor) {
+    private static void drawVirtualPoly(Body body, Vector2[] vtx, Color fillColor, Color strokeColor) {
         float[] v = new float[vtx.length * 2];
         for (int i = 0; i < vtx.length; i++) {
             Vector2 p = body.getWorldPoint(vtx[i]);
@@ -77,7 +77,7 @@ class Draw {
         renderer.end();
     }
 
-    static void cwDrawFloor(Body[] cw_floorTiles) {
+    static void drawFloor(Body[] cw_floorTiles) {
         float camera_x = Game.Camera.pos.x;
 
         int k;
@@ -100,7 +100,7 @@ class Draw {
                 float shapePosition = b.getWorldPoint(tmp).x;
                 if (shapePosition > (camera_x - Game.spaceLeftToCam)) {
                     if (shapePosition < camera_x + 30) {
-                        cwDrawVirtualPoly(b, getVertices(s), new Color(119/255f, 119/255f, 119/255f, 1f), Color.BLACK);
+                        drawVirtualPoly(b, getVertices(s), new Color(119/255f, 119/255f, 119/255f, 1f), Color.BLACK);
                     } else {
                         break outer_loop;
                     }
@@ -129,7 +129,7 @@ class Draw {
             for (Fixture f : b.getFixtureList()) {
                 CircleShape s = (CircleShape) f.getShape();
                 float color = (float) (1 - (1 * (f.getDensity() - wheelMinDensity)) / wheelDensityRange);
-                cwDrawCircle(b, s.getPosition(), s.getRadius(), b.getAngle(), new Color(color, color, color, 1f), Color.BLACK);
+                drawCircle(b, s.getPosition(), s.getRadius(), b.getAngle(), new Color(color, color, color, 1f), Color.BLACK);
             }
         }
 
@@ -147,7 +147,7 @@ class Draw {
         for (Fixture f : chassis.body.getFixtureList()) {
             PolygonShape cs = (PolygonShape) f.getShape();
 
-            cwDrawVirtualPoly(chassis.body, getVertices(cs), fillColor, strokeColor);
+            drawVirtualPoly(chassis.body, getVertices(cs), fillColor, strokeColor);
         }
     }
 }

@@ -19,6 +19,6 @@ class Def {
 
     constructor(id: Int, ancestry: List<Def>) {
         this.id = id
-        this.ancestry = ancestry
+        //this.ancestry = ancestry
     }
 }

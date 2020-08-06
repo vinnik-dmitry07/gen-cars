@@ -2,19 +2,12 @@ package edu.ttp.gengame
 
 import com.badlogic.gdx.ApplicationAdapter
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.*
-import com.badlogic.gdx.graphics.Pixmap.Format
-import com.badlogic.gdx.graphics.g2d.BitmapFont
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton.TextButtonStyle
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.bitfire.postprocessing.PostProcessor
 import com.bitfire.postprocessing.effects.Fxaa
 import com.bitfire.utils.ShaderLoader
@@ -23,14 +16,9 @@ import kotlin.math.roundToInt
 import kotlin.properties.Delegates
 
 
-class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
-    private fun simulationStep() {
-        Runner.step()
-        // TODO
-        //        showDistance(
-        //                Math.round(LeaderPosition.x * 100) / 100,
-        //                Math.round(LeaderPosition.y * 100) / 100
-        //        );
+class Game(callback_: ICallback, displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
+    interface ICallback {
+        fun call(result: Double)
     }
 
 //    fun showDistance(distance: Double, height: Double) { // TODO: 2/18/2020
@@ -47,10 +35,10 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         val floorTiles = Runner.scene.floorTiles
         Gdx.gl.glClearColor(1f, 1f, 1f, 1f)
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
-        cwSetCameraPosition()
+        setCameraPosition()
         Camera.camera.position.set(LeaderPosition.position.x + ((Camera.camera.viewportWidth - 200) / Camera.zoom) / 2f, LeaderPosition.position.y, 0f)
 //        Camera.camera.translate(Camera.distanceToLeftBound - Camera.pos.x * Camera.zoom,
-//                Camera.distanceToTopBound + Camera.pos.y * Camera.zoom)
+//        Camera.distanceToTopBound + Camera.pos.y * Camera.zoom)
         Camera.camera.zoom = 1f / Camera.zoom
 
         Camera.camera.update()
@@ -58,8 +46,8 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         @Suppress("UsePropertyAccessSyntax")
         Draw.renderer.setProjectionMatrix(Camera.camera.combined)
 
-        Draw.cwDrawFloor(floorTiles)
-        //        ghost_draw_frame(ctx, ghost, camera);
+        Draw.drawFloor(floorTiles)
+//        ghost_draw_frame(ctx, ghost, camera);
         drawCars()
         postProcessor.render()
     }
@@ -105,14 +93,12 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         val schema = CarSchema.Schema
     }
 
-    private fun generationZero() {
-        generationState = MachineLearning.GeneticAlgorithm.ManageRound.generationZero()
-    }
-
     object Listeners {
         @JvmStatic
         fun generationEnd(results: List<CarRunner>) {
-            newRound(results.sortedByDescending { it.score.v })
+            val resultsSorted = results.sortedByDescending { it.score.v }
+            callback.call(resultsSorted[0].score.s)
+            newRound(resultsSorted)
         }
 
         @JvmStatic
@@ -129,26 +115,23 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         fun carDeath(carInfo: CarRunner) {
             val k = carInfo.index
 
-            //            CarSchema.Car car = carInfo.car;
+//            CarSchema.Car car = carInfo.car;
             val score = carInfo.score
             carMap[carInfo]!!.kill()
 
-            // refocus camera to leader on death
             if (Camera.target === carInfo) {
                 setCameraTarget(null)
             }
-            // console.log(score);
+
             carMap.remove(carInfo)
-            //            ghost_compare_to_replay(car.replay, ghost, score.v);
+//            ghost_compare_to_replay(car.replay, ghost, score.v);
             score.i = generationState.counter
 
-            cw_deadCars++
-            //            int generationSize = GenerationConfig.generationSize;
-            //            document.getElementById("population").innerHTML = (generationSize - cw_deadCars).toString();
+            deadCars++
+//            int generationSize = GenerationConfig.generationSize;
+//            document.getElementById("population").innerHTML = (generationSize - cw_deadCars).toString();
 
-            // console.log(LeaderPosition.leader, k)
             if (LeaderPosition.leader == k) {
-                // leader is dead, find new leader
                 findLeader()
             }
         }
@@ -200,9 +183,9 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
 //        // Add an image actor. Have to set the size, else it would be the size of the drawable (which is the 1x1 texture).
 //        table.add(Image(skin.newDrawable("white", Color.RED))).size(64f)
 
-        ShaderLoader.BasePath = "shaders/";
+        ShaderLoader.BasePath = "shaders/"
         postProcessor = PostProcessor(false, false, false)
-        val fxaa = Fxaa((Gdx.graphics.getWidth() * 0.9).toInt(), (Gdx.graphics.getHeight() * 0.9).toInt());
+        val fxaa = Fxaa((Gdx.graphics.getWidth() * 0.9).toInt(), (Gdx.graphics.getHeight() * 0.9).toInt())
         postProcessor.addEffect(fxaa)
     }
 
@@ -226,8 +209,10 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
 //        shape.circle(50f, 50f, 50f)
 //        shape.end()
         if (!paused) {
-            drawScreen()
-            simulationStep()
+            if (doDraw) {
+                drawScreen()
+            }
+            for (i in 1..speed) simulationStep()
         }
     }
 
@@ -242,6 +227,7 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
     }
 
     init {
+        callback = callback_
         random = Random()
         Camera.distanceToTopBound = displayHeight / 2
         spaceRightToCam = displayWidth / Camera.zoom
@@ -253,21 +239,19 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         //        PolygonShape hbar = new PolygonShape();
         //        hbar.setAsBox(94, 12);
         //        var generationSize = generationConfig.constants.generationSize;
-        val generationSize = GenerationConfig.generationSize
 
-
-        for (k in 0 until generationSize) {
-            //            // minimap markers
-            //            var newbar = mmm.cloneNode(true);
-            //            newbar.id = "bar" + k;
-            //            newbar.style.paddingTop = k * 9 + "px";
-            //            minimapholder.appendChild(newbar);
-            //
-            //            // health bars
-            //            var newhealth = hbar.cloneNode(true);
-            //            newhealth.getElementsByTagName("DIV")[0].id = "health" + k;
-            //            newhealth.car_index = k;
-            //            document.getElementById("health").appendChild(newhealth);
+        for (k in 0 until GenerationConfig.generationSize) {
+//            // minimap markers
+//            var newbar = mmm.cloneNode(true);
+//            newbar.id = "bar" + k;
+//            newbar.style.paddingTop = k * 9 + "px";
+//            minimapholder.appendChild(newbar);
+//
+//            // health bars
+//            var newhealth = hbar.cloneNode(true);
+//            newhealth.getElementsByTagName("DIV")[0].id = "health" + k;
+//            newhealth.car_index = k;
+//            document.getElementById("health").appendChild(newhealth);
         }
         generationZero()
         // TODO: 2/15/2020
@@ -282,19 +266,21 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
     }
 
     companion object {
-
+        lateinit var callback: ICallback
         var spaceRightToCam: Float by Delegates.notNull()
         lateinit var alivecars: List<CarRunner>
         lateinit var random: Random
         const val spaceLeftToCam = Camera.distanceToLeftBound / Camera.zoom
 
-        // var ghost_fns = Ghost()
+//        var ghost_fns = Ghost()
 
         @JvmField
         val carMap = HashMap<CarRunner, CwCar>()
 
         @JvmField
         var paused = false
+        @JvmField
+        var doDraw = true
 
         private const val box2dfps = 60
         @JvmField
@@ -302,16 +288,35 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         @JvmField
         val maxFrameSkip = skipTicks * 2
 
-        private var cw_deadCars: Int = 0
+        private var deadCars: Int = 0
         lateinit var generationState: MachineLearning.GeneticAlgorithm.ManageRound.GenerationState
         lateinit var runner: Runner
 
+        @JvmField
+        var speed = 1
+
+        @JvmStatic
+        fun simulationStep() {
+            Runner.step()
+//      TODO
+//        showDistance(
+//                Math.round(LeaderPosition.x * 100) / 100,
+//                Math.round(LeaderPosition.y * 100) / 100
+//        );
+        }
+
+        @JvmStatic
+        fun generationZero() {
+            generationState = MachineLearning.GeneticAlgorithm.ManageRound.generationZero()
+        }
+
+        @JvmStatic
         fun resetCarUI() {
-            cw_deadCars = 0
+            deadCars = 0
             LeaderPosition.position = Vector2(0f, 0f)
-            //        document.getElementById("generation").innerHTML = generationState.counter.toString();
-            //        document.getElementById("cars").innerHTML = "";
-            //        document.getElementById("population").innerHTML = generationConfig.constants.generationSize.toString();
+//            document.getElementById("generation").innerHTML = generationState.counter.toString();
+//            document.getElementById("cars").innerHTML = "";
+//            document.getElementById("population").innerHTML = generationConfig.constants.generationSize.toString();
         }
 
         private fun setCameraTarget(k: CarRunner?) {
@@ -319,7 +324,7 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
         }
 
         @JvmStatic
-        fun cwSetCameraPosition() {
+        fun setCameraPosition() {
             var cameraTargetPosition: Vector2
 
             if (Camera.target != null) {
@@ -373,6 +378,14 @@ class Game(displayWidth: Int, displayHeight: Int) : ApplicationAdapter() {
             resetCarUI()
         }
 
+        @JvmStatic
+        fun clearPopulationWorld() {
+            for (car in carMap.values) {
+                car.kill()
+            }
+        }
+
+        @JvmStatic
         fun setupCarUI() {
             Runner.cars.forEach { carInfo: CarRunner ->
                 val car = CwCar(carInfo)
