@@ -1,4 +1,4 @@
-# GenCars
+# gen-cars
 An Android Kotlin implementation of https://github.com/red42/HTML5_Genetic_Cars with minor improvements.
 ## [Demo video](https://www.youtube.com/watch?v=Q79K-Rj6WlQ)
 ![Preview](media/preview.gif)
